@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  AWS Fault Injection Simulator (FIS) experiment templates for all 16 listed actions.
-  ECS tasks are specified via Filters (clusterArn) to allow wildcard (all tasks in cluster).
+  AWS Fault Injection Simulator (FIS) experiment templates for all 16 listed actions,
+  with ECS tasks and EC2 subnets specified via Filters (wildcard approach).
 
 Parameters:
   FISRoleArn:
@@ -55,7 +55,7 @@ Resources:
       Actions:
         ECSStopTask:
           ActionId: 'aws:ecs:stop-task'
-          Description: "Stop an ECS task (all tasks in the specified cluster)"
+          Description: "Stop ECS tasks in the specified cluster"
           Targets:
             Tasks: MyECSTaskStop
           Parameters:
@@ -84,7 +84,7 @@ Resources:
       Actions:
         ECSTaskCPUStress:
           ActionId: 'aws:ecs:task-cpu-stress'
-          Description: "Inject CPU stress into ECS tasks (all tasks in cluster)"
+          Description: "Inject CPU stress into ECS tasks"
           Targets:
             Tasks: MyECSTaskCPU
           Parameters:
@@ -244,7 +244,7 @@ Resources:
 
   #--------------------------------------------------------------------
   # 9. ECS: drain-container-instances
-  #     (コンテナインスタンス対象なのでフィルタ指定ではなく、resourceArns指定のまま)
+  #     (コンテナインスタンスはタスクとは別なので、従来どおり resourceArns)
   #--------------------------------------------------------------------
   FISExpTemplateECSDrainContainerInstances:
     Type: 'AWS::FIS::ExperimentTemplate'
@@ -300,6 +300,7 @@ Resources:
 
   #--------------------------------------------------------------------
   # 11. Network: disrupt-connectivity
+  #     => サブネットを Filters で指定 (例: VPC 内の全サブネット)
   #--------------------------------------------------------------------
   FISExpTemplateNetworkDisruptConnectivity:
     Type: 'AWS::FIS::ExperimentTemplate'
@@ -311,13 +312,15 @@ Resources:
       Targets:
         MySubnet:
           ResourceType: 'aws:ec2:subnet'
-          ResourceArns:
-            - "arn:aws:ec2:REGION:ACCOUNT_ID:subnet/subnet-EXAMPLE"
           SelectionMode: "ALL"
+          Filters:
+            - Path: 'vpcId'
+              Values:
+                - "vpc-EXAMPLE12345"
       Actions:
         NetworkDisruptConnectivity:
           ActionId: 'aws:network:disrupt-connectivity'
-          Description: "Disrupt network connectivity in specified subnets"
+          Description: "Disrupt network connectivity for all subnets in the VPC"
           Targets:
             MyNetwork: MySubnet
           Parameters:
@@ -328,6 +331,7 @@ Resources:
 
   #--------------------------------------------------------------------
   # 12. Network: route-table-disrupt-cross-region-connectivity
+  #     => 同様に Filters でサブネットを指定
   #--------------------------------------------------------------------
   FISExpTemplateNetworkRouteTableDisruptCrossRegionConnectivity:
     Type: 'AWS::FIS::ExperimentTemplate'
@@ -339,9 +343,11 @@ Resources:
       Targets:
         MySubnetForRouteTable:
           ResourceType: 'aws:ec2:subnet'
-          ResourceArns:
-            - "arn:aws:ec2:REGION:ACCOUNT_ID:subnet/subnet-EXAMPLE"
           SelectionMode: "ALL"
+          Filters:
+            - Path: 'vpcId'
+              Values:
+                - "vpc-EXAMPLE12345"
       Actions:
         NetworkRouteTableDisruptCrossRegionConnectivity:
           ActionId: 'aws:network:route-table-disrupt-cross-region-connectivity'
@@ -397,7 +403,7 @@ Resources:
       Actions:
         RDSRebootDBInstances:
           ActionId: 'aws:rds:reboot-db-instances'
-          Description: "Reboot specified RDS DB instance(s)"
+          Description: "Reboot the specified RDS DB instance(s)"
           Targets:
             DBInstance: MyRDSInstance
       Tags:
