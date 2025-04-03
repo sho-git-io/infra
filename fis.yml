@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   AWS Fault Injection Simulator (FIS) experiment templates for all 16 listed actions.
-  Each experiment template is defined independently to allow isolated usage.
+  ECS tasks are specified via Filters (clusterArn) to allow wildcard (all tasks in cluster).
 
 Parameters:
   FISRoleArn:
@@ -45,19 +45,20 @@ Resources:
       StopConditions:
         - Source: 'none'
       Targets:
-        MyECSTask:
+        MyECSTaskStop:
           ResourceType: 'aws:ecs:task'
-          ResourceArns:
-            - "arn:aws:ecs:REGION:ACCOUNT_ID:task/YOUR_CLUSTER_NAME/YOUR_TASK_ID"
           SelectionMode: "ALL"
+          Filters:
+            - Path: 'clusterArn'
+              Values:
+                - "arn:aws:ecs:REGION:ACCOUNT_ID:cluster/YOUR_CLUSTER_NAME"
       Actions:
         ECSStopTask:
           ActionId: 'aws:ecs:stop-task'
-          Description: "Stop an ECS task"
+          Description: "Stop an ECS task (all tasks in the specified cluster)"
           Targets:
-            Tasks: MyECSTask
+            Tasks: MyECSTaskStop
           Parameters:
-            # 必須: clusterArn
             clusterArn: "arn:aws:ecs:REGION:ACCOUNT_ID:cluster/YOUR_CLUSTER_NAME"
       Tags:
         ActionRef: "aws:ecs:stop-task"
@@ -75,18 +76,20 @@ Resources:
       Targets:
         MyECSTaskCPU:
           ResourceType: 'aws:ecs:task'
-          ResourceArns:
-            - "arn:aws:ecs:REGION:ACCOUNT_ID:task/YOUR_CLUSTER_NAME/YOUR_TASK_ID"
           SelectionMode: "ALL"
+          Filters:
+            - Path: 'clusterArn'
+              Values:
+                - "arn:aws:ecs:REGION:ACCOUNT_ID:cluster/YOUR_CLUSTER_NAME"
       Actions:
         ECSTaskCPUStress:
           ActionId: 'aws:ecs:task-cpu-stress'
-          Description: "Inject CPU stress into an ECS task"
+          Description: "Inject CPU stress into ECS tasks (all tasks in cluster)"
           Targets:
             Tasks: MyECSTaskCPU
           Parameters:
-            CPU: "80"         # CPU使用率
-            Duration: "60"    # 継続時間(秒)
+            CPU: "80"
+            Duration: "60"
       Tags:
         ActionRef: "aws:ecs:task-cpu-stress"
 
@@ -103,13 +106,15 @@ Resources:
       Targets:
         MyECSTaskIO:
           ResourceType: 'aws:ecs:task'
-          ResourceArns:
-            - "arn:aws:ecs:REGION:ACCOUNT_ID:task/YOUR_CLUSTER_NAME/YOUR_TASK_ID"
           SelectionMode: "ALL"
+          Filters:
+            - Path: 'clusterArn'
+              Values:
+                - "arn:aws:ecs:REGION:ACCOUNT_ID:cluster/YOUR_CLUSTER_NAME"
       Actions:
         ECSTaskIOStress:
           ActionId: 'aws:ecs:task-io-stress'
-          Description: "Inject IO stress into an ECS task"
+          Description: "Inject IO stress into ECS tasks"
           Targets:
             Tasks: MyECSTaskIO
           Parameters:
@@ -131,13 +136,15 @@ Resources:
       Targets:
         MyECSTaskProc:
           ResourceType: 'aws:ecs:task'
-          ResourceArns:
-            - "arn:aws:ecs:REGION:ACCOUNT_ID:task/YOUR_CLUSTER_NAME/YOUR_TASK_ID"
           SelectionMode: "ALL"
+          Filters:
+            - Path: 'clusterArn'
+              Values:
+                - "arn:aws:ecs:REGION:ACCOUNT_ID:cluster/YOUR_CLUSTER_NAME"
       Actions:
         ECSTaskKillProcess:
           ActionId: 'aws:ecs:task-kill-process'
-          Description: "Kill a process inside the ECS container"
+          Description: "Kill a process in ECS tasks"
           Targets:
             Tasks: MyECSTaskProc
           Parameters:
@@ -158,13 +165,15 @@ Resources:
       Targets:
         MyECSTaskBlackhole:
           ResourceType: 'aws:ecs:task'
-          ResourceArns:
-            - "arn:aws:ecs:REGION:ACCOUNT_ID:task/YOUR_CLUSTER_NAME/YOUR_TASK_ID"
           SelectionMode: "ALL"
+          Filters:
+            - Path: 'clusterArn'
+              Values:
+                - "arn:aws:ecs:REGION:ACCOUNT_ID:cluster/YOUR_CLUSTER_NAME"
       Actions:
         ECSTaskNetworkBlackholePort:
           ActionId: 'aws:ecs:task-network-blackhole-port'
-          Description: "Drop all traffic on a specified port inside ECS container"
+          Description: "Drop traffic on a specified port in ECS tasks"
           Targets:
             Tasks: MyECSTaskBlackhole
           Parameters:
@@ -186,18 +195,20 @@ Resources:
       Targets:
         MyECSTaskLatency:
           ResourceType: 'aws:ecs:task'
-          ResourceArns:
-            - "arn:aws:ecs:REGION:ACCOUNT_ID:task/YOUR_CLUSTER_NAME/YOUR_TASK_ID"
           SelectionMode: "ALL"
+          Filters:
+            - Path: 'clusterArn'
+              Values:
+                - "arn:aws:ecs:REGION:ACCOUNT_ID:cluster/YOUR_CLUSTER_NAME"
       Actions:
         ECSTaskNetworkLatency:
           ActionId: 'aws:ecs:task-network-latency'
-          Description: "Add latency to network traffic inside ECS container"
+          Description: "Add latency to ECS tasks"
           Targets:
             Tasks: MyECSTaskLatency
           Parameters:
-            latency: "100"    # ミリ秒
-            duration: "60"    # 秒
+            latency: "100"
+            duration: "60"
       Tags:
         ActionRef: "aws:ecs:task-network-latency"
 
@@ -214,13 +225,15 @@ Resources:
       Targets:
         MyECSTaskPacketLoss:
           ResourceType: 'aws:ecs:task'
-          ResourceArns:
-            - "arn:aws:ecs:REGION:ACCOUNT_ID:task/YOUR_CLUSTER_NAME/YOUR_TASK_ID"
           SelectionMode: "ALL"
+          Filters:
+            - Path: 'clusterArn'
+              Values:
+                - "arn:aws:ecs:REGION:ACCOUNT_ID:cluster/YOUR_CLUSTER_NAME"
       Actions:
         ECSTaskNetworkPacketLoss:
           ActionId: 'aws:ecs:task-network-packet-loss'
-          Description: "Inject packet loss for ECS container"
+          Description: "Inject packet loss into ECS tasks"
           Targets:
             Tasks: MyECSTaskPacketLoss
           Parameters:
@@ -231,6 +244,7 @@ Resources:
 
   #--------------------------------------------------------------------
   # 9. ECS: drain-container-instances
+  #     (コンテナインスタンス対象なのでフィルタ指定ではなく、resourceArns指定のまま)
   #--------------------------------------------------------------------
   FISExpTemplateECSDrainContainerInstances:
     Type: 'AWS::FIS::ExperimentTemplate'
